@@ -10,11 +10,19 @@
 let cfg = {
   diameter: 60,       
   strokeRel: 0.06,
-  hoverDistance: 30   // detection radius for mouse hover
+  hoverDistance: 30,   
+  vibrationAmount: 2,  
+  vibrationSpeed: 0.1,
+  hoverColor: 'rgba(255, 105, 180, 0.5)'  // Pink color with 50% transparency
 };
+
+let time = 0;  // Add time variable for continuous vibration
 
 // Add array to store circle positions
 let circles = [];
+
+// Add set to store colored circles
+let coloredCircles = new Set();
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -43,6 +51,8 @@ function draw() {
   
   drawSideBySideScallops(startX, endX, upperY, d, false, 0);
   drawSideBySideScallops(startX+30, endX, lowerY-30, d, false, 0);
+
+  time += cfg.vibrationSpeed;  // Update time for vibration
 }
 
 /*
@@ -58,26 +68,50 @@ function drawSideBySideScallops(xStart, xEnd, y, diameter, topArc, xOffset) {
   for (let i = 0; i <= count; i++) {
     let cx = xStart + i * spacing + xOffset;
     push();
-    translate(cx, y);
     
     // Store circle position and check mouse distance
     let circleX = cx;
     let circleY = y;
+    let circleKey = `${circleX},${circleY}`;
     circles.push({x: circleX, y: circleY});
     
     let d = dist(mouseX, mouseY, circleX, circleY);
     if (d < cfg.hoverDistance) {
-      // Draw full circle when mouse is near
+      // Add vibration offset when mouse is near
+      let vibX = random(-cfg.vibrationAmount, cfg.vibrationAmount) * sin(time);
+      let vibY = random(-cfg.vibrationAmount, cfg.vibrationAmount) * cos(time);
+      translate(cx + vibX, y + vibY);
+      
+      // Add this circle to colored set
+      coloredCircles.add(circleKey);
+      
+      // Draw vibrating pink circle
+      stroke(0);
+      fill(cfg.hoverColor);
       circle(0, 0, diameter);
+      noFill();
     } else {
-      // Draw semicircle otherwise
+      translate(cx, y);
+      // Check if this circle should be colored
+      if (coloredCircles.has(circleKey)) {
+        fill(cfg.hoverColor);
+      }
+      // Draw semicircle (possibly colored)
       if (topArc) {
         arc(0, 0, diameter, diameter, PI, 0);
       } else {
         arc(0, 0, diameter, diameter, 0, PI);
       }
+      noFill();
     }
     pop();
+  }
+}
+
+// Add reset function if needed (e.g., on key press)
+function keyPressed() {
+  if (key === ' ') { // Press spacebar to reset
+    coloredCircles.clear();
   }
 }
 
