@@ -13,7 +13,10 @@ let cfg = {
   hoverDistance: 30,   
   vibrationAmount: 2,  
   vibrationSpeed: 0.1,
-  hoverColor: 'rgba(255, 105, 180, 0.5)'  // Pink color with 50% transparency
+  hoverColors: [
+    'rgba(255, 105, 180, 0.5)',  // Pink with 50% transparency
+    'rgba(255, 255, 0, 0.5)'     // Yellow with 50% transparency
+  ]
 };
 
 let time = 0;  // Add time variable for continuous vibration
@@ -69,11 +72,11 @@ function drawSideBySideScallops(xStart, xEnd, y, diameter, topArc, xOffset) {
     let cx = xStart + i * spacing + xOffset;
     push();
     
-    // Store circle position and check mouse distance
     let circleX = cx;
     let circleY = y;
     let circleKey = `${circleX},${circleY}`;
-    circles.push({x: circleX, y: circleY});
+    let colorIndex = i % 2; // Alternate between 0 and 1
+    circles.push({x: circleX, y: circleY, colorIndex: colorIndex});
     
     let d = dist(mouseX, mouseY, circleX, circleY);
     if (d < cfg.hoverDistance) {
@@ -82,21 +85,18 @@ function drawSideBySideScallops(xStart, xEnd, y, diameter, topArc, xOffset) {
       let vibY = random(-cfg.vibrationAmount, cfg.vibrationAmount) * cos(time);
       translate(cx + vibX, y + vibY);
       
-      // Add this circle to colored set
       coloredCircles.add(circleKey);
       
-      // Draw vibrating pink circle
+      // Use alternating colors
       stroke(0);
-      fill(cfg.hoverColor);
+      fill(cfg.hoverColors[colorIndex]);
       circle(0, 0, diameter);
       noFill();
     } else {
       translate(cx, y);
-      // Check if this circle should be colored
       if (coloredCircles.has(circleKey)) {
-        fill(cfg.hoverColor);
+        fill(cfg.hoverColors[colorIndex]);
       }
-      // Draw semicircle (possibly colored)
       if (topArc) {
         arc(0, 0, diameter, diameter, PI, 0);
       } else {
