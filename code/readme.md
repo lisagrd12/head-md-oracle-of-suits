@@ -1,1 +1,2 @@
-# Salut 
+# Coding Exercice...
+Folder for exercices on p5.js 
