@@ -8,45 +8,40 @@
 */
 
 let cfg = {
-  diameter: 60,       // diameter of each semicircle
-  strokeRel: 0.06     // stroke weight relative to diameter
+  diameter: 60,       
+  strokeRel: 0.06,
+  hoverDistance: 30   // detection radius for mouse hover
 };
+
+// Add array to store circle positions
+let circles = [];
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   noFill();
   stroke(0);
   recalculatesStyle();
-  noLoop();
+  loop(); // Enable continuous drawing for hover detection
 }
 
 function draw() {
   background(255);
+  circles = []; // Reset circles array each frame
 
   let d = cfg.diameter;
-  let spacing = d; // centers side-by-side
-
-  // center the touching pair vertically
+  let spacing = d;
   let centerY = 0;
-  // place upper and lower so their centers differ by exactly d
   let upperY = centerY - d * 0.5;
   let lowerY = centerY + d * 0.5;
-
-  // start slightly off-canvas for clean tiling
   let startX = -d;
   let endX = width + d;
 
   for (let y = 0; y < height; y += d) {
     drawSideBySideScallops(startX, endX, upperY+y, d, false, 0);
-
-  // draw lower line (bottom semicircles - changed from top to bottom)
-  drawSideBySideScallops(startX+30, endX, lowerY-30+y, d, false, 0);
-    
+    drawSideBySideScallops(startX+30, endX, lowerY-30+y, d, false, 0);
   }
-  // draw upper line (bottom semicircles) so their bottoms touch the lower tops
+  
   drawSideBySideScallops(startX, endX, upperY, d, false, 0);
-
-  // draw lower line (bottom semicircles - changed from top to bottom)
   drawSideBySideScallops(startX+30, endX, lowerY-30, d, false, 0);
 }
 
@@ -59,14 +54,28 @@ function drawSideBySideScallops(xStart, xEnd, y, diameter, topArc, xOffset) {
   strokeWeight(max(1, diameter * cfg.strokeRel));
   let spacing = diameter;
   let count = ceil((xEnd - xStart) / spacing) + 1;
+  
   for (let i = 0; i <= count; i++) {
     let cx = xStart + i * spacing + xOffset;
     push();
     translate(cx, y);
-    if (topArc) {
-      arc(0, 0, diameter, diameter, PI, 0); // top semicircle
+    
+    // Store circle position and check mouse distance
+    let circleX = cx;
+    let circleY = y;
+    circles.push({x: circleX, y: circleY});
+    
+    let d = dist(mouseX, mouseY, circleX, circleY);
+    if (d < cfg.hoverDistance) {
+      // Draw full circle when mouse is near
+      circle(0, 0, diameter);
     } else {
-      arc(0, 0, diameter, diameter, 0, PI); // bottom semicircle
+      // Draw semicircle otherwise
+      if (topArc) {
+        arc(0, 0, diameter, diameter, PI, 0);
+      } else {
+        arc(0, 0, diameter, diameter, 0, PI);
+      }
     }
     pop();
   }
