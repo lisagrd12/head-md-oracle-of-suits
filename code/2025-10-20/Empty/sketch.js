@@ -16,6 +16,14 @@ let cfg = {
   hoverColors: [
     'rgba(255, 105, 180, 0.5)',  // Pink with 50% transparency
     'rgba(255, 255, 0, 0.5)'     // Yellow with 50% transparency
+  ],
+  colorOptions: [
+    'rgba(255, 105, 180, 0.5)',  // Pink
+    'rgba(255, 255, 0, 0.5)',    // Yellow
+    'rgba(100, 149, 237, 0.5)',  // Cornflower Blue
+    'rgba(50, 205, 50, 0.5)',    // Lime Green
+    'rgba(238, 130, 238, 0.5)',  // Violet
+    'rgba(255, 160, 122, 0.5)'   // Light Salmon
   ]
 };
 
@@ -26,6 +34,9 @@ let circles = [];
 
 // Add set to store colored circles
 let coloredCircles = new Set();
+
+// Add map to store circle colors
+let circleColors = new Map();
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -87,15 +98,20 @@ function drawSideBySideScallops(xStart, xEnd, y, diameter, topArc, xOffset) {
       
       coloredCircles.add(circleKey);
       
-      // Use alternating colors
+      // Assign random color if not already colored
+      if (!circleColors.has(circleKey)) {
+        let randomColor = random(cfg.colorOptions);
+        circleColors.set(circleKey, randomColor);
+      }
+      
       stroke(0);
-      fill(cfg.hoverColors[colorIndex]);
+      fill(circleColors.get(circleKey));
       circle(0, 0, diameter);
       noFill();
     } else {
       translate(cx, y);
-      if (coloredCircles.has(circleKey)) {
-        fill(cfg.hoverColors[colorIndex]);
+      if (circleColors.has(circleKey)) {
+        fill(circleColors.get(circleKey));
       }
       if (topArc) {
         arc(0, 0, diameter, diameter, PI, 0);
@@ -108,10 +124,10 @@ function drawSideBySideScallops(xStart, xEnd, y, diameter, topArc, xOffset) {
   }
 }
 
-// Add reset function if needed (e.g., on key press)
+// Update reset function
 function keyPressed() {
-  if (key === ' ') { // Press spacebar to reset
-    coloredCircles.clear();
+  if (key === ' ') {
+    circleColors.clear();
   }
 }
 
