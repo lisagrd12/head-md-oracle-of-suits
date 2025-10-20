@@ -27,7 +27,7 @@ function draw() {
   let spacing = d; // centers side-by-side
 
   // center the touching pair vertically
-  let centerY = height / 2;
+  let centerY = 0;
   // place upper and lower so their centers differ by exactly d
   let upperY = centerY - d * 0.5;
   let lowerY = centerY + d * 0.5;
@@ -36,11 +36,18 @@ function draw() {
   let startX = -d;
   let endX = width + d;
 
+  for (let y = 0; y < height; y += d) {
+    drawSideBySideScallops(startX, endX, upperY+y, d, false, 0);
+
+  // draw lower line (bottom semicircles - changed from top to bottom)
+  drawSideBySideScallops(startX+30, endX, lowerY-30+y, d, false, 0);
+    
+  }
   // draw upper line (bottom semicircles) so their bottoms touch the lower tops
   drawSideBySideScallops(startX, endX, upperY, d, false, 0);
 
-  // draw lower line (top semicircles)
-  drawSideBySideScallops(startX, endX, lowerY, d, true, 0);
+  // draw lower line (bottom semicircles - changed from top to bottom)
+  drawSideBySideScallops(startX+30, endX, lowerY-30, d, false, 0);
 }
 
 /*
