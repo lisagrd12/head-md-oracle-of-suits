@@ -1,5 +1,5 @@
 // variables globales pour les sons
-let son1, son2, son3, son4, son5, son6;
+let son1, son2, son3, son4, son5, son6, son7, son8, son9;
 
 function preload() {
   // load sound library
@@ -10,13 +10,16 @@ function preload() {
   son4 = loadSound('libraries/son-4-glouglou.mp3');
   son5 = loadSound('libraries/son-5-bijou.mp3');
   son6 = loadSound('libraries/son-6-victory.mp3');
+  son7 = loadSound('libraries/son-7-pling.mp3');
+  son8 = loadSound('libraries/son-8-apllauus.mp3');
+  son9 = loadSound('libraries/son-9-what.mp3');
   
-  // augmenter le volume de tous les sons
-  son2.setVolume(1.0);
-  son3.setVolume(1.0);
-  son4.setVolume(1.0);
-  son5.setVolume(1.0);
-  son6.setVolume(1.0);
+  // augmenter le volume de tous les sons (valeur max recommandée 1.0)
+  [son2, son3, son4, son5, son6, son7, son8, son9].forEach(s => {
+    if (s && s.setVolume) s.setVolume(1.0);
+  });
+
+  console.log('preload: sounds requested');
 }
 
 function setup() {
@@ -47,11 +50,13 @@ function draw() {
   strokeWeight(2);
 
   // make sure we have detections to draw
-  if (detections) {
+  if (!detections || !detections.multiHandLandmarks) return;
 
+  try {
     // for each detected hand (use index to read handedness in parallel)
     for (let i = 0; i < detections.multiHandLandmarks.length; i++) {
       const hand = detections.multiHandLandmarks[i];
+      if (!hand) continue;
 
       // try several possible shapes for handedness info
       const handedObj = (detections.multiHandedness && detections.multiHandedness[i]) || {};
@@ -88,15 +93,16 @@ function draw() {
               lastBeepTimes[key] = t;
             }
           }
-
         } // end of tips loop
 
       } // end of if thumb && videoElement
 
     } // end of hands loop
-
-  } // end of if detections
-  
+  } catch (err) {
+    console.error('draw error', err);
+    // stop the loop to inspect error in console
+    noLoop();
+  }
 } // end of draw
 
 // fonction pour jouer le bon son selon la main et le doigt
@@ -126,32 +132,32 @@ function playSpecificSound(handSide, finger) {
   } else if (handSide === 'right') {
     switch(finger) {
       case 'index':
-        soundToPlay = son5;
-        soundName = 'son-5-bijou';
+        soundToPlay = son7;
+        soundName = 'son-7-pling';
         break;
       case 'middle':
-        soundToPlay = son2;
-        soundName = 'son-2-anto';
+        soundToPlay = son8;
+        soundName = 'son-8-apllauus';
         break;
       case 'ring':
-        soundToPlay = son3;
-        soundName = 'son-3-caca';
+        soundToPlay = son9;
+        soundName = 'son-9-what';
         break;
       case 'pinky':
-        soundToPlay = son6;
-        soundName = 'son-6-victory';
+        soundToPlay = son5;
+        soundName = 'son-5-bijou';
         break;
     }
   }
 
   // jouer le son si il existe et est chargé
-  if (soundToPlay && soundToPlay.isLoaded()) {
+  if (soundToPlay && soundToPlay.isLoaded && soundToPlay.isLoaded()) {
     // arrêter le son s'il joue déjà pour éviter la superposition
-    if (soundToPlay.isPlaying()) {
+    if (soundToPlay.isPlaying && soundToPlay.isPlaying()) {
       soundToPlay.stop();
     }
-    // augmenter le volume avant de jouer
-    soundToPlay.setVolume(2.0);
+    // volume raisonnable
+    if (soundToPlay.setVolume) soundToPlay.setVolume(1.0);
     soundToPlay.play();
     console.log(`Playing ${soundName} for ${handSide} ${finger}`);
   } else {
@@ -161,9 +167,9 @@ function playSpecificSound(handSide, finger) {
 
 // only the index finger tip landmark
 function drawIndex(landmarks) {
-
   // get the index fingertip landmark
   let mark = landmarks[FINGER_TIPS.index];
+  if (!mark) return;
 
   noStroke();
   // set fill color for index fingertip
@@ -173,14 +179,13 @@ function drawIndex(landmarks) {
   let x = mark.x * videoElement.width;
   let y = mark.y * videoElement.height;
   circle(x, y, 50);
-
 }
 
 // draw the thumb finger tip landmark
 function drawThumb(landmarks) {
-
   // get the thumb fingertip landmark
   let mark = landmarks[FINGER_TIPS.thumb];
+  if (!mark) return;
 
   noStroke();
   // set fill color for thumb fingertip
@@ -190,7 +195,6 @@ function drawThumb(landmarks) {
   let x = mark.x * videoElement.width;
   let y = mark.y * videoElement.height;
   circle(x, y, 50);
-
 }
 
 function drawTips(landmarks) {
@@ -203,6 +207,7 @@ function drawTips(landmarks) {
 
   for (let tipIndex of tips) {
     let mark = landmarks[tipIndex];
+    if (!mark) continue;
     // adapt the coordinates (0..1) to video coordinates
     let x = mark.x * videoElement.width;
     let y = mark.y * videoElement.height;
@@ -216,6 +221,7 @@ function drawLandmarks(landmarks) {
   fill(255, 0, 0);
 
   for (let mark of landmarks) {
+    if (!mark) continue;
     // adapt the coordinates (0..1) to video coordinates
     let x = mark.x * videoElement.width;
     let y = mark.y * videoElement.height;
