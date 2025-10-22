@@ -50,7 +50,7 @@ window.initHands = (opts = {}) => {
 function setupVideo(selfieMode = true) {
     // create a hidden video element that MediaPipe Camera util will use
     videoElement = createCapture(VIDEO, { flipped: selfieMode });
-    videoElement.size(640, 480);
+    videoElement.size(740, 580);
     videoElement.hide();
 
     // Use MediaPipe Camera util to feed frames from the p5 video element
