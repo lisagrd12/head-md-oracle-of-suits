@@ -5,3 +5,5 @@ Carla, a card, gets fresh out of the shower with nothing on. She slips, bonks he
 ## Interaction 
 
 The user help her remember by picking a symbol from a real drawer and showing it to the screen: each choice triggers a tiny gesture mini-game and a fun historical fact.
+with hands
+play with the suits 
