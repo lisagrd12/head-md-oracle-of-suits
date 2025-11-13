@@ -30,6 +30,9 @@ let targetAttempt = null;
 // Confetti system
 let confetti = [];
 
+// AJOUTER cette variable globale en haut avec les autres
+let showTutorial = true;
+
 function preload() {
   for (let i = 0; i < numIcons; i++) {
     iconImages[i] = loadImage(iconMap[i]);
@@ -53,6 +56,11 @@ function setup() {
   
   imagesLoaded = iconImages.every(img => img && img.width > 0);
   targetAttempt = floor(random(minAttempts, maxAttempts + 1));
+  
+  // Tutorial disparaît après 8 secondes
+  setTimeout(() => {
+    showTutorial = false;
+  }, 8000);
 }
 
 function windowResized() {
@@ -60,32 +68,23 @@ function windowResized() {
 }
 
 function draw() {
-  setGradient(0, 0, width, height, color(20, 20, 40), color(60, 60, 100));
+  // Fond noir permanent
+  background(0);
 
-  if (isVideoReady()) {
-    push();
-    let videoAspect = videoElement.width / videoElement.height;
-    let canvasAspect = width / height;
-    let videoW, videoH, videoX, videoY;
-    
-    if (canvasAspect > videoAspect) {
-      videoW = width;
-      videoH = width / videoAspect;
-      videoX = 0;
-      videoY = (height - videoH) / 2;
-    } else {
-      videoH = height;
-      videoW = height * videoAspect;
-      videoX = (width - videoW) / 2;
-      videoY = 0;
-    }
-    
-    tint(255, 150);
-    image(videoElement, videoX, videoY, videoW, videoH);
-    noTint();
-    pop();
-  }
+  // Dessiner la machine à sous sur fond noir
+  drawSlotMachine();
+  
+  // Update and draw confetti
+  updateConfetti();
+  drawConfetti();
 
+  // Check hand gestures for spin control (caméra cachée mais active)
+  checkHandGestures();
+
+  // Update slot machine reels animation
+  updateReels();
+
+  // Dessiner les landmarks de la main (optionnel - pour debug)
   strokeWeight(2);
   if (detections) {
     for (let hand of detections.multiHandLandmarks) {
@@ -96,22 +95,104 @@ function draw() {
       drawThumb(hand);
     }
   }
-
-  checkHandGestures();
-  updateReels();
-  drawSlotMachine();
-  updateConfetti();
-  drawConfetti();
+  
+  // TUTORIAL - Afficher au début du jeu
+  if (showTutorial) {
+    drawTutorial();
+  }
 }
 
-function setGradient(x, y, w, h, c1, c2) {
-  noFill();
-  for (let i = y; i <= y + h; i++) {
-    let inter = map(i, y, y + h, 0, 1);
-    let c = lerpColor(c1, c2, inter);
-    stroke(c);
-    line(x, i, x + w, i);
+// NOUVELLE FONCTION - Tutorial animé
+function drawTutorial() {
+  push();
+  
+  // Fond semi-transparent
+  fill(0, 0, 0, 200);
+  noStroke();
+  rect(0, 0, width, height);
+  
+  let centerX = width / 2;
+  let centerY = height / 2;
+  
+  // Animation main qui descend
+  let handY = centerY - 100 + sin(frameCount * 0.1) * 60;
+  let arrowY = handY + 80;
+  
+  // Dessiner la main (poing fermé)
+  //drawHandGesture(centerX, handY);
+  
+  // Flèche vers le bas animée
+  drawArrowDown(centerX, arrowY);
+  
+  // Texte explicatif
+  fill(255);
+  textSize(35);
+  // text centered
+  textAlign(CENTER, CENTER);
+  text("Descendez votre main", centerX, centerY + 120);
+  text("pour faire tourner la machine", centerX, centerY + 170);
+  
+  // Compteur fade out
+  let timeLeft = 8 - floor(frameCount / 60);
+  if (timeLeft > 0) {
   }
+  pop();
+}
+// Dessiner un poing fermé stylisé
+function drawHandGesture(x, y) {
+  push();
+  
+  // Paume
+  fill(255, 220, 177);
+  stroke(100);
+  strokeWeight(3);
+  ellipse(x, y, 80, 100);
+  
+  // Pouce
+  ellipse(x - 45, y - 10, 35, 50);
+  
+  // 4 doigts repliés
+  for (let i = 0; i < 4; i++) {
+    let fingerX = x - 30 + i * 20;
+    let fingerY = y - 30;
+    fill(255, 200, 160);
+    rect(fingerX, fingerY, 15, 40, 8);
+  }
+  
+  // Contour blanc brillant
+  noFill();
+  stroke(255, 255, 255, 180);
+  strokeWeight(2);
+  ellipse(x, y, 82, 102);
+  
+  pop();
+}
+
+// Dessiner flèche vers le bas animée
+function drawArrowDown(x, y) {
+  push();
+  
+  let pulse = sin(frameCount * 0.15) * 5;
+  
+  // Ligne
+  stroke(0, 255, 0);
+  strokeWeight(8);
+  line(x, y, x, y + 80 + pulse);
+  
+  // Pointe
+  fill(0, 255, 0);
+  noStroke();
+  triangle(
+    x, y + 90 + pulse,
+    x - 25, y + 60 + pulse,
+    x + 25, y + 60 + pulse
+  );
+  
+  // Lueur
+  fill(0, 255, 0, 100);
+  ellipse(x, y + 75 + pulse, 60, 60);
+  
+  pop();
 }
 
 function createConfetti() {
@@ -165,12 +246,16 @@ function checkHandGestures() {
   if (detections && detections.multiHandLandmarks.length > 0) {
     let hand = detections.multiHandLandmarks[0];
     let wrist = hand[0];
-    let currentHandY = wrist.y * videoElement.height;
+    // CORRECTION: utiliser height au lieu de videoElement.height
+    let currentHandY = wrist.y * height;
     
     if (previousHandY !== null && canTrigger && !isRolling) {
       let deltaY = currentHandY - previousHandY;
       
       if (deltaY > gestureThreshold) {
+        // Cacher le tutorial dès le premier geste
+        showTutorial = false;
+        
         rollAll();
         canTrigger = false;
         setTimeout(() => {
@@ -224,23 +309,25 @@ function drawSlotMachine() {
   let totalWidth = 3 * reelWidth + 2 * spacing;
   let startX = centerX - totalWidth / 2;
   
+  // Fond machine OPAQUE (pas transparent)
   if (winState === "win2") {
-    fill(255, 200 + sin(frameCount * 0.3) * 55, 0, 220);
+    fill(255, 200 + sin(frameCount * 0.3) * 55, 0); // Orange vif pour jackpot
   } else if (winState === "win1") {
-    fill(173, 216 + sin(frameCount * 0.3) * 39, 230, 220);
+    fill(173, 216 + sin(frameCount * 0.3) * 39, 230); // Bleu pour gain partiel
   } else if (handGestureActive) {
-    fill(200, 255, 200, 220);
+    fill(50, 200, 50); // Vert foncé quand main détectée
   } else {
-    fill(169, 169, 169, 220);
+    fill(80, 80, 80); // Gris foncé normal
   }
   
-  stroke(100);
+  stroke(150);
   strokeWeight(5 * (scale / 2));
   let padding = 40 * scale;
   rect(startX - padding, centerY - reelHeight / 2 - padding, 
        totalWidth + padding * 2, reelHeight + padding * 2, 10);
   
-  fill(0, 0, 0, 60);
+  // Ombre en haut
+  fill(0, 0, 0, 150);
   noStroke();
   rect(startX - padding, centerY - reelHeight / 2 - padding, 
        totalWidth + padding * 2, 15 * scale);
@@ -377,7 +464,7 @@ function rollAll() {
       setTimeout(() => {
         attemptCount = 0;
         targetAttempt = floor(random(minAttempts, maxAttempts + 1));
-      }, 400);
+      }, 5000);
     } else if (indexes[0] === indexes[1] || indexes[1] === indexes[2] || indexes[0] === indexes[2]) {
       winState = "win1";
       winTimer = 0;
@@ -385,73 +472,80 @@ function rollAll() {
   });
 }
 
+// CORRIGER checkHandGestures - enlever videoElement.height
+function checkHandGestures() {
+  if (detections && detections.multiHandLandmarks.length > 0) {
+    let hand = detections.multiHandLandmarks[0];
+    let wrist = hand[0];
+    // CORRECTION: utiliser height au lieu de videoElement.height
+    let currentHandY = wrist.y * height;
+    
+    if (previousHandY !== null && canTrigger && !isRolling) {
+      let deltaY = currentHandY - previousHandY;
+      
+      if (deltaY > gestureThreshold) {
+        // Cacher le tutorial dès le premier geste
+        showTutorial = false;
+        
+        rollAll();
+        canTrigger = false;
+        setTimeout(() => {
+          canTrigger = true;
+          previousHandY = null;
+        }, 2000);
+      }
+    }
+    
+    previousHandY = currentHandY;
+    handGestureActive = true;
+  } else {
+    previousHandY = null;
+    handGestureActive = false;
+  }
+}
+
+// CORRIGER toutes les fonctions draw - coordonnées directes
 function drawIndex(landmarks) {
   let mark = landmarks[FINGER_TIPS.index];
   noStroke();
-  fill(0, 255, 255);
-  let coords = getScaledCoords(mark.x, mark.y);
-  circle(coords.x, coords.y, 20);
+  fill(62,119,74);
+  circle(mark.x * width, mark.y * height, 20);
 }
 
 function drawThumb(landmarks) {
   let mark = landmarks[FINGER_TIPS.thumb];
   noStroke();
-  fill(255, 255, 0);
-  let coords = getScaledCoords(mark.x, mark.y);
-  circle(coords.x, coords.y, 20);
+  fill(62,119,74);
+  circle(mark.x * width, mark.y * height, 20);
 }
 
 function drawTips(landmarks) {
   noStroke();
-  fill(0, 0, 255);
+  fill(62,119,74);
   const tips = [4, 8, 12, 16, 20];
   for (let tipIndex of tips) {
     let mark = landmarks[tipIndex];
-    let coords = getScaledCoords(mark.x, mark.y);
-    circle(coords.x, coords.y, 10);
+    circle(mark.x * width, mark.y * height, 10);
   }
 }
 
 function drawLandmarks(landmarks) {
   noStroke();
-  fill(255, 0, 0);
+  fill(62,119,74);
   for (let mark of landmarks) {
-    let coords = getScaledCoords(mark.x, mark.y);
-    circle(coords.x, coords.y, 6);
+    circle(mark.x * width, mark.y * height, 6);
   }
 }
 
 function drawConnections(landmarks) {
-  stroke(0, 255, 0);
+  stroke(62,119,74);
+  strokeWeight(2);
   for (let connection of HAND_CONNECTIONS) {
     const a = landmarks[connection[0]];
     const b = landmarks[connection[1]];
     if (!a || !b) continue;
-    let coordsA = getScaledCoords(a.x, a.y);
-    let coordsB = getScaledCoords(b.x, b.y);
-    line(coordsA.x, coordsA.y, coordsB.x, coordsB.y);
+    line(a.x * width, a.y * height, b.x * width, b.y * height);
+    //epaisseur 
+    strokeWeight(12);
   }
-}
-
-function getScaledCoords(normalizedX, normalizedY) {
-  let videoAspect = videoElement.width / videoElement.height;
-  let canvasAspect = width / height;
-  let videoW, videoH, videoX, videoY;
-  
-  if (canvasAspect > videoAspect) {
-    videoW = width;
-    videoH = width / videoAspect;
-    videoX = 0;
-    videoY = (height - videoH) / 2;
-  } else {
-    videoH = height;
-    videoW = height * videoAspect;
-    videoX = (width - videoW) / 2;
-    videoY = 0;
-  }
-  
-  return {
-    x: videoX + normalizedX * videoW,
-    y: videoY + normalizedY * videoH
-  };
 }
